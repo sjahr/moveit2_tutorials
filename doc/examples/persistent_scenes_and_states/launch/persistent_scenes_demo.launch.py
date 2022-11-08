@@ -1,16 +1,38 @@
 import os
 from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument, OpaqueFunction
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
-from launch.actions import ExecuteProcess
+from launch_ros.substitutions import FindPackageShare
 from ament_index_python.packages import get_package_share_directory
 from moveit_configs_utils import MoveItConfigsBuilder
 
-
 def generate_launch_description():
+
+    declared_arguments = []
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "rviz_config",
+            default_value="panda_moveit_config_demo.rviz",
+            description="RViz configuration file",
+        )
+    )
+
+    return LaunchDescription(
+        declared_arguments + [OpaqueFunction(function=launch_setup)]
+    )
+
+def launch_setup(context, *args, **kwargs):
     moveit_config = (
         MoveItConfigsBuilder("moveit_resources_panda")
         .robot_description(file_path="config/panda.urdf.xacro")
         .trajectory_execution(file_path="config/gripper_moveit_controllers.yaml")
+        .planning_scene_monitor(
+            publish_robot_description=True, publish_robot_description_semantic=True
+        )
+        .planning_pipelines(
+            pipelines=["ompl", "chomp", "pilz_industrial_motion_planner"]
+        )
         .to_moveit_configs()
     )
 
@@ -18,8 +40,6 @@ def generate_launch_description():
         get_package_share_directory("moveit2_tutorials")
         + "/data/kitchen_panda_db.sqlite"
     )
-
-    print(sqlite_database)
 
     ## BEGIN_SUB_TUTORIAL add_config
     ## * Add a dictionary with the warehouse_ros options
@@ -37,6 +57,7 @@ def generate_launch_description():
     # Start the actual move_group node/action server
     ## BEGIN_SUB_TUTORIAL set_config_move_group
     ## * Add it to the Move Group config
+    # Start the actual move_group node/action server
     run_move_group_node = Node(
         package="moveit_ros_move_group",
         executable="move_group",
@@ -50,8 +71,9 @@ def generate_launch_description():
     ## END_SUB_TUTORIAL
 
     # RViz
-    rviz_config_file = (
-        get_package_share_directory("moveit2_tutorials") + "/launch/move_group.rviz"
+    rviz_base = LaunchConfiguration("rviz_config")
+    rviz_config = PathJoinSubstitution(
+        [FindPackageShare("moveit2_tutorials"), "launch", rviz_base]
     )
 
     ## BEGIN_SUB_TUTORIAL set_config_rviz
@@ -61,7 +83,7 @@ def generate_launch_description():
         executable="rviz2",
         name="rviz2",
         output="log",
-        arguments=["-d", rviz_config_file],
+        arguments=["-d", rviz_config],
         parameters=[
             moveit_config.robot_description,
             moveit_config.robot_description_semantic,
@@ -105,20 +127,29 @@ def generate_launch_description():
         output="both",
     )
 
-    # Load controllers
-    load_controllers = []
-    for controller in [
-        "panda_arm_controller",
-        "panda_hand_controller",
-        "joint_state_broadcaster",
-    ]:
-        load_controllers += [
-            ExecuteProcess(
-                cmd=["ros2 run controller_manager spawner.py {}".format(controller)],
-                shell=True,
-                output="screen",
-            )
-        ]
+    joint_state_broadcaster_spawner = Node(
+        package="controller_manager",
+        executable="spawner",
+        arguments=[
+            "joint_state_broadcaster",
+            "--controller-manager-timeout",
+            "300",
+            "--controller-manager",
+            "/controller_manager",
+        ],
+    )
+
+    arm_controller_spawner = Node(
+        package="controller_manager",
+        executable="spawner",
+        arguments=["panda_arm_controller", "-c", "/controller_manager"],
+    )
+
+    hand_controller_spawner = Node(
+        package="controller_manager",
+        executable="spawner",
+        arguments=["panda_hand_controller", "-c", "/controller_manager"],
+    )
 
     # Warehouse mongodb server
     ## BEGIN_SUB_TUTORIAL start_mongodb_server
@@ -133,17 +164,18 @@ def generate_launch_description():
     # )
     ## END_SUB_TUTORIAL
 
-    return LaunchDescription(
-        [
+    nodes_to_start = [
             rviz_node,
             static_tf,
             robot_state_publisher,
             run_move_group_node,
             ros2_control_node,
+            joint_state_broadcaster_spawner,
+            arm_controller_spawner,
+            hand_controller_spawner,
             # mongodb_server_node,
         ]
-        + load_controllers
-    )
+    return nodes_to_start
 
 
 ## BEGIN_TUTORIAL

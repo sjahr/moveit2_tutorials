@@ -173,7 +173,7 @@ def launch_setup(context, *args, **kwargs):
             joint_state_broadcaster_spawner,
             arm_controller_spawner,
             hand_controller_spawner,
-            # mongodb_server_node,
+            # mongodb_server_node, # Commented out bc sqlite database is used as default option
         ]
     return nodes_to_start
 

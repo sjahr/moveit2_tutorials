@@ -38,7 +38,7 @@ def launch_setup(context, *args, **kwargs):
 
     sqlite_database = (
         get_package_share_directory("moveit2_tutorials")
-        + "/data/kitchen_panda_db.sqlite"
+        + "/data/panda_test_db.sqlite"
     )
 
     ## BEGIN_SUB_TUTORIAL add_config

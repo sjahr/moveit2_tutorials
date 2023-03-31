@@ -24,12 +24,12 @@ of the planning component's :code:`plan(...)` function is used:
 
     MotionPlanResponse PlanningComponent::plan(
       const MultiPipelinePlanRequestParameters& parameters,
-      SolutionCallbackFunction solution_selection_callback,
+      SolutionSelectionFunction solution_selection_function,
       StoppingCriterionFunction stopping_criterion_callback)
 
 This function tries to plan a trajectory from a start state to a goal state that satisfies a set of constraints. Based on the configuration
 provided by the :code:`parameters`, multiple threads are launched and each tries to solve the planning problem with a different planning pipeline. Please keep in mind, that no solution is also a possible result. Once
-all pipelines have been terminated. the :code:`solution_selection_callback` is called to determine which
+all pipelines have been terminated. the :code:`solution_selection_function` is called to determine which
 solution is returned as :code:`MotionPlanResponse`. By default, all pipelines use their time budget defined by the :code:`planning_time` field of the :code:`MultiPipelinePlanRequestParameters`, but it is possible to terminate the parallel planning earlier by using the :code:`stopping_criterion_callback`. This function
 is called whenever a pipeline produces a solution during the parallel planning process and, if the stopping criterion is met, terminates pipelines that have not found a solution yet.
 
@@ -162,7 +162,7 @@ Here is an example of a custom stopping criterion, that terminates the other pla
       return false;
     }
 
-Once :code:`MultiPipelinePlanRequestParameters` and optionally :code:`SolutionCallbackFunction` and/or :code:`StoppingCriterionFunction` are defined, we call :code:`plan(...)`:
+Once :code:`MultiPipelinePlanRequestParameters` and optionally :code:`SolutionSelectionFunction` and/or :code:`StoppingCriterionFunction` are defined, we call :code:`plan(...)`:
 
 .. code-block:: c++
 

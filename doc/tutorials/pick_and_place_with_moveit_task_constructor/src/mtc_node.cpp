@@ -115,13 +115,15 @@ mtc::Task MTCTaskNode::createTask()
   current_state_ptr = stage_state_current.get();
   task.add(std::move(stage_state_current));
 
+  auto sampling_planner = std::make_shared<mtc::solvers::PipelinePlanner>(node_);
+
   // Declare planning pipeline - planner_id pairs
   std::unordered_map<std::string, std::string> pipeline_id_planner_id_map;
   pipeline_id_planner_id_map["ompl"] = "RRTConnectkConfigDefault";
   pipeline_id_planner_id_map["pilz_industrial_motion_planner"] = "LIN";
   pipeline_id_planner_id_map["chomp"] = "chomp";
 
-  auto sampling_planner = std::make_shared<mtc::solvers::PipelinePlanner>(node_, pipeline_id_planner_id_map);
+  auto parallel_planner = std::make_shared<mtc::solvers::PipelinePlanner>(node_, pipeline_id_planner_id_map);
 
   auto interpolation_planner = std::make_shared<mtc::solvers::JointInterpolationPlanner>();
 
@@ -265,7 +267,7 @@ mtc::Task MTCTaskNode::createTask()
     // clang-format off
     auto stage_move_to_place = std::make_unique<mtc::stages::Connect>(
         "move to place",
-        mtc::stages::Connect::GroupPlannerVector{ { arm_group_name, sampling_planner },
+        mtc::stages::Connect::GroupPlannerVector{ { arm_group_name, parallel_planner },
                                                   { hand_group_name, interpolation_planner } });
     // clang-format on
     stage_move_to_place->setTimeout(5.0);

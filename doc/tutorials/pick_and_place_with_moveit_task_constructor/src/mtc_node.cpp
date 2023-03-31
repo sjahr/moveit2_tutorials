@@ -115,7 +115,13 @@ mtc::Task MTCTaskNode::createTask()
   current_state_ptr = stage_state_current.get();
   task.add(std::move(stage_state_current));
 
-  auto sampling_planner = std::make_shared<mtc::solvers::PipelinePlanner>(node_);
+  // Declare planning pipeline - planner_id pairs
+  std::unordered_map<std::string, std::string> pipeline_id_planner_id_map;
+  pipeline_id_planner_id_map["ompl"] = "RRTConnectkConfigDefault";
+  pipeline_id_planner_id_map["pilz_industrial_motion_planner"] = "LIN";
+  pipeline_id_planner_id_map["chomp"] = "chomp";
+
+  auto sampling_planner = std::make_shared<mtc::solvers::PipelinePlanner>(node_, pipeline_id_planner_id_map);
 
   auto interpolation_planner = std::make_shared<mtc::solvers::JointInterpolationPlanner>();
 

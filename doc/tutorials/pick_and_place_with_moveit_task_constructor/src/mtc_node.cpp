@@ -124,6 +124,7 @@ mtc::Task MTCTaskNode::createTask()
   pipeline_id_planner_id_map["chomp"] = "chomp";
 
   auto parallel_planner = std::make_shared<mtc::solvers::PipelinePlanner>(node_, pipeline_id_planner_id_map);
+  parallel_planner->setStoppingCriterionFunction(nullptr);  // Give all planning pipelines the full planning time budget
 
   auto interpolation_planner = std::make_shared<mtc::solvers::JointInterpolationPlanner>();
 

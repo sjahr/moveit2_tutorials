@@ -1,6 +1,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <moveit/planning_scene/planning_scene.h>
 #include <moveit/planning_scene_interface/planning_scene_interface.h>
+#include <moveit/planning_pipeline_interfaces/planning_pipeline_interfaces.hpp>
 #include <moveit/task_constructor/task.h>
 #include <moveit/task_constructor/solvers.h>
 #include <moveit/task_constructor/stages.h>
@@ -124,7 +125,42 @@ mtc::Task MTCTaskNode::createTask()
   pipeline_id_planner_id_map["chomp"] = "chomp";
 
   auto parallel_planner = std::make_shared<mtc::solvers::PipelinePlanner>(node_, pipeline_id_planner_id_map);
-  parallel_planner->setStoppingCriterionFunction(nullptr);  // Give all planning pipelines the full planning time budget
+  parallel_planner->setStoppingCriterionFunction(
+      nullptr);  // Omit default stopping criterion and allow all pipelines to use the full budget
+
+  parallel_planner->setSolutionSelectionFunction(
+      [](const std::vector<::planning_interface::MotionPlanResponse>& solutions) {
+        for (auto const& solution : solutions)
+        {
+          std::cout << "Length of solution for planner: '" << solution.planner_id << "' is " << [&]() {
+            if (solution.trajectory)
+            {
+              return robot_trajectory::path_length(*solution.trajectory);
+            }
+            return -1.0;
+          }() << "'\n";
+        }
+        // Find trajectory with minimal path
+        auto const shortest_trajectory =
+            std::min_element(solutions.begin(), solutions.end(),
+                             [](const ::planning_interface::MotionPlanResponse& solution_a,
+                                const ::planning_interface::MotionPlanResponse& solution_b) {
+                               // If both solutions were successful, check which path is shorter
+                               if (solution_a && solution_b)
+                               {
+                                 return robot_trajectory::path_length(*solution_a.trajectory) <
+                                        robot_trajectory::path_length(*solution_b.trajectory);
+                               }
+                               // If only solution a is successful, return a
+                               else if (solution_a)
+                               {
+                                 return true;
+                               }
+                               // Else return solution b, either because it is successful or not
+                               return false;
+                             });
+        return *shortest_trajectory;
+      });
 
   auto interpolation_planner = std::make_shared<mtc::solvers::JointInterpolationPlanner>();
 

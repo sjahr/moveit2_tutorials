@@ -72,12 +72,8 @@ Configuration
    kinematics_configuration/kinematics_configuration_tutorial
    custom_constraint_samplers/custom_constraint_samplers_tutorial
    ompl_interface/ompl_interface_tutorial
-   chomp_planner/chomp_planner_tutorial
-   stomp_planner/stomp_planner_tutorial
    trajopt_planner/trajopt_planner_tutorial
-   pilz_industrial_motion_planner/pilz_industrial_motion_planner
-   planning_adapters/planning_adapters_tutorial.rst
-   persistent_scenes_and_states/persistent_scenes_and_states
+   planning_adapters/planning_adapters_tutorial
 
 Miscellaneous
 ----------------------------
@@ -85,7 +81,6 @@ Miscellaneous
 .. toctree::
    :maxdepth: 1
 
-   benchmarking/benchmarking_tutorial
    dual_arms/dual_arms_tutorial
    hybrid_planning/hybrid_planning_tutorial
    realtime_servo/realtime_servo_tutorial
